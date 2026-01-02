@@ -207,7 +207,7 @@ fn validate_prefix(prefix: &str) -> Result<String, String> {
 
 // Main application entry point
 #[tokio::main]
-async fn main() -> Result<(), RisError> {
+async fn main() -> Result<(), Box<RisError>> {
     let matches = Command::new("RIPE RIS Live Streamer")
         .version(VERSION)
         .about("Monitor the streams from RIPE RIS Live")
