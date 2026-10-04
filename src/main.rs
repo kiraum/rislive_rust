@@ -19,7 +19,7 @@ const VERSION: &str = env!("CARGO_PKG_VERSION");
 #[derive(Debug, Error)]
 enum RisError {
     #[error("WebSocket error: {0}")]
-    WebSocket(#[from] tokio_tungstenite::tungstenite::Error),
+    WebSocket(#[from] Box<tokio_tungstenite::tungstenite::Error>),
     #[error("JSON error: {0}")]
     Json(#[from] serde_json::Error),
     #[error("URL parse error: {0}")]
@@ -111,13 +111,13 @@ impl RipeRisStreamer {
         let url = Url::parse(&url)?;
 
         debug!("Creating websocket connection...");
-        let (ws_stream, _) = connect_async(url).await?;
+        let (ws_stream, _) = connect_async(url).await.map_err(Box::new)?;
         let (mut write, mut read) = ws_stream.split();
 
         debug!("Sending RIS parameters...");
         let params = serde_json::to_string(&self.params)?;
         debug!("Parameters sent: {}", params);
-        write.send(Message::Text(params)).await?;
+        write.send(Message::Text(params)).await.map_err(Box::new)?;
 
         info!("Listening...");
         debug!("Starting the reception loop...");
@@ -207,7 +207,7 @@ fn validate_prefix(prefix: &str) -> Result<String, String> {
 
 // Main application entry point
 #[tokio::main]
-async fn main() -> Result<(), Box<RisError>> {
+async fn main() -> Result<(), RisError> {
     let matches = Command::new("RIPE RIS Live Streamer")
         .version(VERSION)
         .about("Monitor the streams from RIPE RIS Live")
